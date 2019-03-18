@@ -179,7 +179,28 @@ static void test_expr(char *s, float expected)
         status = 1;
         return;
     }
-    float result = expr_eval(e);
+    int result = expr_eval(e);
+    int frac = result & 15;
+    float real = (float) (result >> 4);
+    if (frac & (1 << 3)) {
+        frac = -((~frac & 15) + 1);
+    }
+
+    if (frac == -1 && (result >> 4) == 1) {
+        real = NAN;
+    } else if (frac == -1 && (result >> 4) == 2) {
+        real = 1.0 / 0.0;
+    } else {
+        while (frac) {
+            if (frac < 0) {
+                ++frac;
+                real /= 10;
+            } else {
+                --frac;
+                real *= 10;
+            }
+        }
+    }
 
     char *p = (char *) malloc(strlen(s) + 1);
     strncpy(p, s, strlen(s) + 1);
@@ -189,9 +210,8 @@ static void test_expr(char *s, float expected)
         }
     }
 
-    if ((isnan(result) && !isnan(expected)) ||
-        fabs(result - expected) > 0.00001f) {
-        printf("FAIL: %s: %f != %f\n", p, result, expected);
+    if ((isnan(real) && !isnan(expected)) || fabs(real - expected) > 0.00001f) {
+        printf("FAIL: %s: %f != %f\n", p, real, expected);
         status = 1;
     } else {
         printf("OK: %s == %f\n", p, expected);

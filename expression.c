@@ -1,11 +1,10 @@
 #include "expression.h"
 
-#include <ctype.h> /* for isspace */
-#include <limits.h>
-#include <math.h> /* for pow */
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+#include <linux/kernel.h>
+#include <linux/module.h>
+#include <linux/ctype.h> /* for isspace */
+#include <linux/limits.h>
+#include <linux/string.h>
 #define GET_NUM(n) (n >> 4)
 #define NAN_INT ((1 << 4) | (1 << 4) - 1)
 #define INF_INT ((1 << 5) | (1 << 4) - 1)
@@ -228,7 +227,8 @@ struct expr_var *expr_var(struct expr_var_list *vars, const char *s, size_t len)
             return v;
         }
     }
-    v = (struct expr_var *) calloc(1, sizeof(struct expr_var) + len + 1);
+    v = (struct expr_var *) kcalloc(1, sizeof(struct expr_var) + len + 1,
+                                    GFP_KERNEL);
     if (!v)
         return NULL; /* allocation failed */
     v->next = vars->head;
@@ -293,16 +293,10 @@ int remain(int a, int b)
     return FP2INT(n1, frac1);
 }
 
-int shift_right(int a, int b)
+int right_shift(int a, int b)
 {
     // FIXME: should use 2-base?
     return divid(a, mult(2 << 4, b));
-}
-
-int shift_left(int a, int b)
-{
-    // FIXME: should use 2-base?
-    return mult(a, power(2 << 4, b));
 }
 
 int power(int a, int b)
@@ -330,6 +324,12 @@ int power(int a, int b)
         n1 *= on1;
     }
     return FP2INT(n1, frac1);
+}
+
+int left_shift(int a, int b)
+{
+    // FIXME: should use 2-base?
+    return mult(a, power(2 << 4, b));
 }
 
 int plus(int a, int b)
@@ -485,10 +485,10 @@ int expr_eval(struct expr *e)
         return minus(expr_eval(&e->param.op.args.buf[0]),
                      expr_eval(&e->param.op.args.buf[1]));
     case OP_SHL:  // oK
-        return shift_left(expr_eval(&e->param.op.args.buf[0]),
+        return left_shift(expr_eval(&e->param.op.args.buf[0]),
                           expr_eval(&e->param.op.args.buf[1]));
     case OP_SHR:  // OK
-        return shift_right(expr_eval(&e->param.op.args.buf[0]),
+        return right_shift(expr_eval(&e->param.op.args.buf[0]),
                            expr_eval(&e->param.op.args.buf[1]));
     case OP_LT:  // OK
         return MASK(compare(expr_eval(&e->param.op.args.buf[0]),
@@ -726,7 +726,8 @@ static inline void expr_copy(struct expr *dst, struct expr *src)
             vec_push(&dst->param.func.args, tmp);
         }
         if (src->param.func.f->ctxsz > 0) {
-            dst->param.func.context = calloc(1, src->param.func.f->ctxsz);
+            dst->param.func.context =
+                kcalloc(1, src->param.func.f->ctxsz, GFP_KERNEL);
         }
     } else if (src->type == OP_CONST) {
         dst->param.num.value = src->param.num.value;
@@ -935,7 +936,7 @@ struct expr *expr_create(const char *s,
                         bound_func.param.func.f = f;
                         bound_func.param.func.args = arg.args;
                         if (f->ctxsz > 0) {
-                            void *p = calloc(1, f->ctxsz);
+                            void *p = kcalloc(1, f->ctxsz, GFP_KERNEL);
                             if (!p) {
                                 goto cleanup; /* allocation failed */
                             }
@@ -1007,7 +1008,7 @@ struct expr *expr_create(const char *s,
         }
     }
 
-    result = (struct expr *) calloc(1, sizeof(struct expr));
+    result = (struct expr *) kcalloc(1, sizeof(struct expr), GFP_KERNEL);
     if (result) {
         if (vec_len(&es) == 0) {
             result->type = OP_CONST;
@@ -1062,7 +1063,7 @@ static void expr_destroy_args(struct expr *e)
                 e->param.func.f->cleanup(e->param.func.f,
                                          e->param.func.context);
             }
-            free(e->param.func.context);
+            kfree(e->param.func.context);
         }
     } else if (e->type != OP_CONST && e->type != OP_VAR) {
         vec_foreach (&e->param.op.args, arg, i) {
@@ -1076,12 +1077,12 @@ void expr_destroy(struct expr *e, struct expr_var_list *vars)
 {
     if (e) {
         expr_destroy_args(e);
-        free(e);
+        kfree(e);
     }
     if (vars) {
         for (struct expr_var *v = vars->head; v;) {
             struct expr_var *next = v->next;
-            free(v);
+            kfree(v);
             v = next;
         }
     }
