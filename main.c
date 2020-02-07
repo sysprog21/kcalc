@@ -34,8 +34,7 @@ static int dev_release(struct inode *, struct file *);
 static ssize_t dev_read(struct file *, char *, size_t, loff_t *);
 static ssize_t dev_write(struct file *, const char *, size_t, loff_t *);
 
-static void prepare_calc(void);
-static void calc(int first, int second, operation_t op);
+static void calc(void);
 
 static struct file_operations fops = {
     .open = dev_open,
@@ -100,30 +99,17 @@ static ssize_t dev_write(struct file *filep,
     size_of_message = strlen(message);
     printk(KERN_INFO "CALC: Received %d -> %s\n", size_of_message, message);
 
-    if (size_of_message >= 3) {
-        prepare_calc();
-    }
+    calc();
     return len;
 }
 
-static void handle_case(int *first_num_stop, int *sec_num_start, int i)
-{
-    if (first_num_stop && *first_num_stop == 0) {
-        *first_num_stop = i - 1;
-    }
-
-    if (sec_num_start && *sec_num_start == 0) {
-        *sec_num_start = i + 1;
-    }
-}
-
-static void prepare_calc(void)
+static void calc(void)
 {
     struct expr_var_list vars = {0};
     struct expr *e = expr_create(message, strlen(message), &vars, NULL);
     if (!e) {
         printk(KERN_ALERT "Syntax error");
-        return 1;
+        return;
     }
 
     result = expr_eval(e);

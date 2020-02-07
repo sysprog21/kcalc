@@ -1,13 +1,13 @@
 #include "expression.h"
 
-#include <linux/kernel.h>
-#include <linux/module.h>
 #include <linux/ctype.h> /* for isspace */
+#include <linux/kernel.h>
 #include <linux/limits.h>
+#include <linux/module.h>
 #include <linux/string.h>
-#define GET_NUM(n) (n >> 4)
-#define NAN_INT ((1 << 4) | (1 << 4) - 1)
-#define INF_INT ((1 << 5) | (1 << 4) - 1)
+#define GET_NUM(n) ((n) >> 4)
+#define NAN_INT ((1 << 4) | ((1 << 4) - 1))
+#define INF_INT ((1 << 5) | ((1 << 4) - 1))
 #define MASK(n) (((n) > 0) << 4)
 /*
  * lsb 4 byte for precision, 2^3, one for sign
