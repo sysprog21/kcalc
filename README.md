@@ -71,3 +71,8 @@ Testing  (1/3)+(2/3) ...
 Testing  (2145%31)+23 ...
 29
 ```
+
+## License
+
+`kcalc`is released under the MIT License. Use of this source code is governed by
+a MIT License that can be found in the LICENSE file.
