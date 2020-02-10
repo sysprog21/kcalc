@@ -1,6 +1,13 @@
 #ifndef EXPRESSION_H_
 #define EXPRESSION_H_
 
+#ifdef __KERNEL__
+#include <linux/slab.h>
+#else
+#include <stddef.h>
+#include <stdlib.h>
+#endif
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -23,12 +30,15 @@ extern "C" {
 #define vec_nth(v, i) (v)->buf[i]
 #define vec_peek(v) (v)->buf[(v)->len - 1]
 #define vec_pop(v) (v)->buf[--(v)->len]
+#ifdef __KERNEL__
 #define vec_free(v) (kfree((v)->buf), (v)->buf = NULL, (v)->len = (v)->cap = 0)
+#else
+#define vec_free(v) (free((v)->buf), (v)->buf = NULL, (v)->len = (v)->cap = 0)
+#endif
 #define vec_foreach(v, var, iter)                                              \
     if ((v)->len > 0)                                                          \
         for ((iter) = 0; (iter) < (v)->len && (((var) = (v)->buf[(iter)]), 1); \
              ++(iter))
-#include <linux/slab.h>
 
 /* Simple expandable vector implementation */
 static inline int vec_expand(char **buf, int *length, int *cap, int memsz)
@@ -36,10 +46,13 @@ static inline int vec_expand(char **buf, int *length, int *cap, int memsz)
     if (*length + 1 > *cap) {
         void *ptr;
         int n = (*cap == 0) ? 1 : *cap << 1;
+#ifdef __KERNEL__
         ptr = krealloc(*buf, n * memsz, GFP_KERNEL);
-        if (ptr == NULL) {
+#else
+        ptr = realloc(*buf, n * memsz);
+#endif
+        if (!ptr)
             return -1; /* allocation failed */
-        }
         *buf = (char *) ptr;
         *cap = n;
     }

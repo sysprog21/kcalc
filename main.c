@@ -26,8 +26,6 @@ static struct device *char_dev = NULL;
 static char *msg_ptr = NULL;
 static int result = 0;
 
-typedef enum { ADD = 0, SUB, MULT, DIV, POW, NONE } operation_t;
-
 /* The prototype functions for the character driver */
 static int dev_open(struct inode *, struct file *);
 static int dev_release(struct inode *, struct file *);
@@ -56,9 +54,8 @@ static ssize_t dev_read(struct file *filep,
 {
     int error_count = 0;
 
-    if (*msg_ptr == 0) {
+    if (*msg_ptr == 0)
         return 0;
-    }
 
     memset(message, 0, sizeof(char) * BUFF_SIZE);
 
@@ -74,11 +71,9 @@ static ssize_t dev_read(struct file *filep,
             len--;
         }
 
-        if (error_count == 0) {
+        if (error_count == 0)
             return (size_of_message);
-        } else {
-            return -EFAULT;
-        }
+        return -EFAULT;
     } else {
         printk(KERN_INFO "CALC: Failed to send %d characters to the user\n",
                error_count);
@@ -94,7 +89,6 @@ static ssize_t dev_write(struct file *filep,
     size_of_message = 0;
     memset(message, 0, sizeof(char) * BUFF_SIZE);
 
-    // snprintf(message, BUFF_SIZE, "%s", buffer);
     copy_from_user(message, buffer, BUFF_SIZE);
     size_of_message = strlen(message);
     printk(KERN_INFO "CALC: Received %d -> %s\n", size_of_message, message);
