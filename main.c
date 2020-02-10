@@ -7,6 +7,7 @@
 #include <linux/uaccess.h>
 
 #include <linux/string.h> /* for memset() and memcpy() */
+#include "expression.h"
 
 MODULE_LICENSE("Dual MIT/GPL");
 MODULE_AUTHOR("National Cheng Kung University, Taiwan");
@@ -33,8 +34,7 @@ static int dev_release(struct inode *, struct file *);
 static ssize_t dev_read(struct file *, char *, size_t, loff_t *);
 static ssize_t dev_write(struct file *, const char *, size_t, loff_t *);
 
-static void prepare_calc(void);
-static void calc(int first, int second, operation_t op);
+static void calc(void);
 
 static struct file_operations fops = {
     .open = dev_open,
@@ -94,121 +94,26 @@ static ssize_t dev_write(struct file *filep,
     size_of_message = 0;
     memset(message, 0, sizeof(char) * BUFF_SIZE);
 
-    snprintf(message, BUFF_SIZE, "%s", buffer);
+    // snprintf(message, BUFF_SIZE, "%s", buffer);
+    copy_from_user(message, buffer, BUFF_SIZE);
     size_of_message = strlen(message);
     printk(KERN_INFO "CALC: Received %d -> %s\n", size_of_message, message);
 
-    if (size_of_message >= 3) {
-        prepare_calc();
-    }
+    calc();
     return len;
 }
 
-static void calc(int first, int second, operation_t op)
+static void calc(void)
 {
-    switch (op) {
-    case ADD: {
-        result = first + second;
-        break;
-    }
-    case SUB: {
-        result = first - second;
-        break;
-    }
-    case MULT: {
-        result = first * second;
-        break;
-    }
-    case DIV: {
-        result = first / second;
-        break;
-    }
-    case POW: {
-        result = first ^ second;
-        break;
-    }
-    default:
-        result = 0;
-        break;
-    }
-}
-
-static void handle_case(int *first_num_stop, int *sec_num_start, int i)
-{
-    if (first_num_stop && *first_num_stop == 0) {
-        *first_num_stop = i - 1;
+    struct expr_var_list vars = {0};
+    struct expr *e = expr_create(message, strlen(message), &vars, NULL);
+    if (!e) {
+        printk(KERN_ALERT "Syntax error");
+        return;
     }
 
-    if (sec_num_start && *sec_num_start == 0) {
-        *sec_num_start = i + 1;
-    }
-}
-
-static void prepare_calc(void)
-{
-    int first_num_stop = 0;
-    int sec_num_start = 0;
-    int op_idx = 0;
-    operation_t op = NONE;
-
-    for (int i = 0; i < BUFF_SIZE; i++) {
-        if (message[i] == '\0') {
-            break;
-        }
-
-        switch (message[i]) {
-        case '*': {
-            handle_case(&first_num_stop, &sec_num_start, i);
-            op_idx = i;
-            op = MULT;
-            break;
-        }
-        case '/': {
-            handle_case(&first_num_stop, &sec_num_start, i);
-            op_idx = i;
-            op = DIV;
-            break;
-        }
-        case '+': {
-            handle_case(&first_num_stop, &sec_num_start, i);
-            op_idx = i;
-            op = ADD;
-            break;
-        }
-        case '-': {
-            handle_case(&first_num_stop, &sec_num_start, i);
-            op_idx = i;
-            op = SUB;
-            break;
-        }
-        case '^': {
-            handle_case(&first_num_stop, &sec_num_start, i);
-            op_idx = i;
-            op = POW;
-            break;
-        }
-        case ' ': {
-            handle_case(&first_num_stop, &sec_num_start, i);
-            op_idx = i;
-            break;
-        }
-        default:
-            break;
-        }
-    }
-
-    if (sec_num_start > 0 && op_idx > 0) {
-        char **endp = NULL;
-        int first_num = simple_strtol(message, endp, 10);
-        int sec_num = simple_strtol((message + sec_num_start), endp, 10);
-
-        printk(KERN_INFO "input is valid !\n");
-
-        calc(first_num, sec_num, op);
-
-        printk(KERN_INFO "first num: %d\n", first_num);
-        printk(KERN_INFO "sec num: %d\n", sec_num);
-    }
+    result = expr_eval(e);
+    printk(KERN_INFO "Result: %d\n", result);
 }
 
 static int dev_release(struct inode *inodep, struct file *filep)

@@ -1,6 +1,8 @@
 KDIR=/lib/modules/$(shell uname -r)/build
 
-obj-m += calc.o 
+TARGET = calc
+obj-m += calc.o
+calc-objs += main.o expression.o
 ccflags-y := -std=gnu99 -Wno-declaration-after-statement
 
 GIT_HOOKS := .git/hooks/applied
