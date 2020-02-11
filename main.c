@@ -86,12 +86,15 @@ static ssize_t dev_write(struct file *filep,
                          size_t len,
                          loff_t *offset)
 {
-    size_of_message = 0;
     memset(message, 0, sizeof(char) * BUFF_SIZE);
 
-    copy_from_user(message, buffer, BUFF_SIZE);
-    size_of_message = strlen(message);
-    printk(KERN_INFO "CALC: Received %d -> %s\n", size_of_message, message);
+    if (len >= BUFF_SIZE) {
+        printk(KERN_ALERT "Expression too long");
+        return 0;
+    }
+
+    copy_from_user(message, buffer, len);
+    printk(KERN_INFO "CALC: Received %ld -> %s\n", len, message);
 
     calc();
     return len;
