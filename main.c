@@ -123,8 +123,9 @@ static int __init calc_init(void)
 {
     printk(KERN_INFO "CALC: Initializing the CALC LKM\n");
 
-    // Try to dynamically allocate a major number for the device -- more
-    // difficult but worth it
+    /* Try to dynamically allocate a major number for the device -- more
+     * difficult but worth it
+     */
     major = register_chrdev(0, DEVICE_NAME, &fops);
     if (major < 0) {
         printk(KERN_ALERT "CALC failed to register a major number\n");
@@ -133,22 +134,23 @@ static int __init calc_init(void)
     printk(KERN_INFO "CALC: registered correctly with major number %d\n",
            major);
 
-    // Register the device class
+    /* Register the device class */
     char_class = class_create(THIS_MODULE, CLASS_NAME);
     if (IS_ERR(char_class)) {  // Check for error and clean up if there is
         unregister_chrdev(major, DEVICE_NAME);
         printk(KERN_ALERT "Failed to register device class\n");
         return PTR_ERR(
-            char_class);  // Correct way to return an error on a pointer
+            char_class); /* Correct way to return an error on a pointer */
     }
     printk(KERN_INFO "CALC: device class registered correctly\n");
 
-    // Register the device driver
+    /* Register the device driver */
     char_dev =
         device_create(char_class, NULL, MKDEV(major, 0), NULL, DEVICE_NAME);
-    if (IS_ERR(char_dev)) {         // Clean up if there is an error
-        class_destroy(char_class);  // Repeated code but the alternative is
-                                    // goto statements
+    if (IS_ERR(char_dev)) {        /* Clean up if there is an error */
+        class_destroy(char_class); /* Repeated code but the alternative is
+                                    *  goto statements
+                                    */
         unregister_chrdev(major, DEVICE_NAME);
         printk(KERN_ALERT "Failed to create the device\n");
         return PTR_ERR(char_dev);
@@ -159,10 +161,10 @@ static int __init calc_init(void)
 
 static void __exit calc_exit(void)
 {
-    device_destroy(char_class, MKDEV(major, 0));  // remove the device
-    class_unregister(char_class);                 // unregister the device class
-    class_destroy(char_class);                    // remove the device class
-    unregister_chrdev(major, DEVICE_NAME);        // unregister the major number
+    device_destroy(char_class, MKDEV(major, 0)); /* remove the device */
+    class_unregister(char_class);          /* unregister the device class */
+    class_destroy(char_class);             /* remove the device class */
+    unregister_chrdev(major, DEVICE_NAME); /* unregister the major number */
     printk(KERN_INFO "CALC: Goodbye!\n");
 }
 

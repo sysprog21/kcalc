@@ -5,6 +5,7 @@
 #include <linux/limits.h>
 #include <linux/module.h>
 #include <linux/string.h>
+
 #define GET_NUM(n) ((n) >> 4)
 #define NAN_INT ((1 << 4) | ((1 << 4) - 1))
 #define INF_INT ((1 << 5) | ((1 << 4) - 1))
@@ -177,7 +178,7 @@ static int expr_parse_number(const char *s, size_t len)
 {
     int num = 0;
     int frac = 0;
-    int dot = 0;  // FIXME: not good enough
+    int dot = 0; /* FIXME: not good enough */
     unsigned int digits = 0;
     for (unsigned int i = 0; i < len; i++) {
         if (s[i] == '.' && dot == 0) {
@@ -186,13 +187,11 @@ static int expr_parse_number(const char *s, size_t len)
         }
         if (isdigit(s[i])) {
             digits++;
-            if (dot) {
+            if (dot)
                 --frac;
-            }
             num = num * 10 + (s[i] - '0');
-        } else {
+        } else
             return NAN_INT;
-        }
     }
 
     num = FP2INT(num, frac);
@@ -205,9 +204,8 @@ static int expr_parse_number(const char *s, size_t len)
 struct expr_func *expr_func(struct expr_func *funcs, const char *s, size_t len)
 {
     for (struct expr_func *f = funcs; f->name; f++) {
-        if (strlen(f->name) == len && strncmp(f->name, s, len) == 0) {
+        if (strlen(f->name) == len && strncmp(f->name, s, len) == 0)
             return f;
-        }
     }
     return NULL;
 }
@@ -219,13 +217,11 @@ struct expr_func *expr_func(struct expr_func *funcs, const char *s, size_t len)
 struct expr_var *expr_var(struct expr_var_list *vars, const char *s, size_t len)
 {
     struct expr_var *v = NULL;
-    if (len == 0 || !isfirstvarchr(*s)) {
+    if (len == 0 || !isfirstvarchr(*s))
         return NULL;
-    }
     for (v = vars->head; v; v = v->next) {
-        if (strlen(v->name) == len && strncmp(v->name, s, len) == 0) {
+        if (strlen(v->name) == len && strncmp(v->name, s, len) == 0)
             return v;
-        }
     }
     v = (struct expr_var *) kcalloc(1, sizeof(struct expr_var) + len + 1,
                                     GFP_KERNEL);
@@ -278,7 +274,7 @@ int remain(int a, int b)
     if (n2 == 0)
         return NAN_INT;
 
-    // to int
+    /* to int */
     while (frac1 > 0) {
         n1 /= 10;
         --frac1;
@@ -295,7 +291,7 @@ int remain(int a, int b)
 
 int right_shift(int a, int b)
 {
-    // FIXME: should use 2-base?
+    /* FIXME: should use 2-base? */
     return divid(a, mult(2 << 4, b));
 }
 
@@ -328,7 +324,7 @@ int power(int a, int b)
 
 int left_shift(int a, int b)
 {
-    // FIXME: should use 2-base?
+    /* FIXME: should use 2-base? */
     return mult(a, power(2 << 4, b));
 }
 
@@ -415,7 +411,7 @@ int bitwise_op(int a, int b, int op)
     if (frac1 == -1 || frac2 == -1)
         return NAN_INT;
 
-    // to int
+    /* to int */
     while (frac1 > 0) {
         n1 /= 10;
         --frac1;
@@ -455,101 +451,98 @@ int not(int a)
     return FP2INT(!n, frac);
 }
 
-// TODO: change logic
+/* TODO: change logic */
 int expr_eval(struct expr *e)
 {
     int n;
     switch (e->type) {
-    case OP_UNARY_MINUS:  // OK
+    case OP_UNARY_MINUS: /* OK */
         return minus(FP2INT(0, 0), expr_eval(&e->param.op.args.buf[0]));
-    case OP_UNARY_LOGICAL_NOT:  // OK
+    case OP_UNARY_LOGICAL_NOT: /* OK */
         return not(expr_eval(&e->param.op.args.buf[0]));
-    case OP_UNARY_BITWISE_NOT:  // OK
+    case OP_UNARY_BITWISE_NOT: /* OK */
         return bitwise_op(expr_eval(&e->param.op.args.buf[0]), 0, 3);
     case OP_POWER:
         return power(expr_eval(&e->param.op.args.buf[0]),
                      expr_eval(&e->param.op.args.buf[1]));
-    case OP_MULTIPLY:  // OK
+    case OP_MULTIPLY: /* OK */
         return mult(expr_eval(&e->param.op.args.buf[0]),
                     expr_eval(&e->param.op.args.buf[1]));
-    case OP_DIVIDE:  // OK, precision
+    case OP_DIVIDE: /* OK, precision */
         return divid(expr_eval(&e->param.op.args.buf[0]),
                      expr_eval(&e->param.op.args.buf[1]));
-    case OP_REMAINDER:  // OK, no floating point
+    case OP_REMAINDER: /* OK, no floating point */
         return remain(expr_eval(&e->param.op.args.buf[0]),
                       expr_eval(&e->param.op.args.buf[1]));
-    case OP_PLUS:  // OK
+    case OP_PLUS: /* OK */
         return plus(expr_eval(&e->param.op.args.buf[0]),
                     expr_eval(&e->param.op.args.buf[1]));
-    case OP_MINUS:  // OK
+    case OP_MINUS: /* OK */
         return minus(expr_eval(&e->param.op.args.buf[0]),
                      expr_eval(&e->param.op.args.buf[1]));
-    case OP_SHL:  // oK
+    case OP_SHL: /* oK */
         return left_shift(expr_eval(&e->param.op.args.buf[0]),
                           expr_eval(&e->param.op.args.buf[1]));
-    case OP_SHR:  // OK
+    case OP_SHR: /* OK */
         return right_shift(expr_eval(&e->param.op.args.buf[0]),
                            expr_eval(&e->param.op.args.buf[1]));
-    case OP_LT:  // OK
+    case OP_LT: /* OK */
         return MASK(compare(expr_eval(&e->param.op.args.buf[0]),
                             expr_eval(&e->param.op.args.buf[1])) &
                     (LOWER));
-    case OP_LE:  // OK
+    case OP_LE: /* OK */
         return MASK(compare(expr_eval(&e->param.op.args.buf[0]),
                             expr_eval(&e->param.op.args.buf[1])) &
                     (LOWER | EQUAL));
-    case OP_GT:  // OK
+    case OP_GT: /* OK */
         return MASK(compare(expr_eval(&e->param.op.args.buf[0]),
                             expr_eval(&e->param.op.args.buf[1])) &
                     (GREATER));
-    case OP_GE:  // OK
+    case OP_GE: /* OK */
         return MASK(compare(expr_eval(&e->param.op.args.buf[0]),
                             expr_eval(&e->param.op.args.buf[1])) &
                     (GREATER | EQUAL));
-    case OP_EQ:  // OK
+    case OP_EQ: /* OK */
         return MASK(compare(expr_eval(&e->param.op.args.buf[0]),
                             expr_eval(&e->param.op.args.buf[1])) &
                     (EQUAL));
-    case OP_NE:  // OK
+    case OP_NE: /* OK */
         return MASK(!(compare(expr_eval(&e->param.op.args.buf[0]),
                               expr_eval(&e->param.op.args.buf[1])) &
                       (EQUAL)));
-    case OP_BITWISE_AND:  // OK
+    case OP_BITWISE_AND: /* OK */
         return (bitwise_op(expr_eval(&e->param.op.args.buf[0]),
                            expr_eval(&e->param.op.args.buf[1]), 0));
-    case OP_BITWISE_OR:  // OK
+    case OP_BITWISE_OR: /* OK */
         return MASK(bitwise_op(expr_eval(&e->param.op.args.buf[0]),
                                expr_eval(&e->param.op.args.buf[1]), 1));
-    case OP_BITWISE_XOR:  // OK
+    case OP_BITWISE_XOR: /* OK */
         return (bitwise_op(expr_eval(&e->param.op.args.buf[0]),
                            expr_eval(&e->param.op.args.buf[1]), 2));
-    case OP_LOGICAL_AND:  // OK
+    case OP_LOGICAL_AND: /* OK */
         n = expr_eval(&e->param.op.args.buf[0]);
         if (GET_NUM(n) != 0) {
             n = expr_eval(&e->param.op.args.buf[1]);
-            if (GET_NUM(n) != 0) {
+            if (GET_NUM(n) != 0)
                 return n;
-            }
         }
         return 0;
-    case OP_LOGICAL_OR:  // OK
+    case OP_LOGICAL_OR: /* OK */
         n = expr_eval(&e->param.op.args.buf[0]);
         if (GET_NUM(n) != 0 && !isNan(n)) {
             return n;
         } else {
             n = expr_eval(&e->param.op.args.buf[1]);
-            if (GET_NUM(n) != 0) {
+            if (GET_NUM(n) != 0)
                 return n;
-            }
         }
         return 0;
-    case OP_ASSIGN:  // OK
+    case OP_ASSIGN: /* OK */
         n = expr_eval(&e->param.op.args.buf[1]);
-        if (vec_nth(&e->param.op.args, 0).type == OP_VAR) {
+        if (vec_nth(&e->param.op.args, 0).type == OP_VAR)
             *e->param.op.args.buf[0].param.var.value = n;
-        }
         return n;
-    case OP_COMMA:  // OK
+    case OP_COMMA: /* OK */
         expr_eval(&e->param.op.args.buf[0]);
         return expr_eval(&e->param.op.args.buf[1]);
     case OP_CONST:
@@ -579,11 +572,10 @@ int expr_next_token(const char *s, size_t len, int *flags)
         for (; i < len && isspace(s[i]); i++)
             ;
         if (*flags & EXPR_TOP) {
-            if (i == len || s[i] == ')') {
+            if (i == len || s[i] == ')')
                 *flags = *flags & (~EXPR_COMMA);
-            } else {
+            else
                 *flags = EXPR_TNUMBER | EXPR_TWORD | EXPR_TOPEN | EXPR_COMMA;
-            }
         }
         return i;
     } else if (isspace(c)) {
@@ -592,9 +584,8 @@ int expr_next_token(const char *s, size_t len, int *flags)
         }
         return i;
     } else if (isdigit(c)) {
-        if ((*flags & EXPR_TNUMBER) == 0) {
-            return -1;  // unexpected number
-        }
+        if ((*flags & EXPR_TNUMBER) == 0)
+            return -1; /* unexpected number */
         *flags = EXPR_TOP | EXPR_TCLOSE;
         while ((c == '.' || isdigit(c)) && i < len) {
             i++;
@@ -602,9 +593,8 @@ int expr_next_token(const char *s, size_t len, int *flags)
         }
         return i;
     } else if (isfirstvarchr(c)) {
-        if ((*flags & EXPR_TWORD) == 0) {
-            return -2;  // unexpected word
-        }
+        if ((*flags & EXPR_TWORD) == 0)
+            return -2; /* unexpected word */
         *flags = EXPR_TOP | EXPR_TOPEN | EXPR_TCLOSE;
         while ((isvarchr(c)) && i < len) {
             i++;
@@ -612,36 +602,32 @@ int expr_next_token(const char *s, size_t len, int *flags)
         }
         return i;
     } else if (c == '(' || c == ')') {
-        if (c == '(' && (*flags & EXPR_TOPEN) != 0) {
+        if (c == '(' && (*flags & EXPR_TOPEN) != 0)
             *flags = EXPR_TNUMBER | EXPR_TWORD | EXPR_TOPEN | EXPR_TCLOSE;
-        } else if (c == ')' && (*flags & EXPR_TCLOSE) != 0) {
+        else if (c == ')' && (*flags & EXPR_TCLOSE) != 0)
             *flags = EXPR_TOP | EXPR_TCLOSE;
-        } else {
-            return -3;  // unexpected parenthesis
-        }
+        else
+            return -3; /* unexpected parenthesis */
         return 1;
     } else {
         if ((*flags & EXPR_TOP) == 0) {
-            if (expr_op(&c, 1, 1) == OP_UNKNOWN) {
-                return -4;  // missing expected operand
-            }
+            if (expr_op(&c, 1, 1) == OP_UNKNOWN)
+                return -4; /* missing expected operand */
             *flags = EXPR_TNUMBER | EXPR_TWORD | EXPR_TOPEN | EXPR_UNARY;
             return 1;
         } else {
             int found = 0;
             while (!isvarchr(c) && !isspace(c) && c != '(' && c != ')' &&
                    i < len) {
-                if (expr_op(s, i + 1, 0) != OP_UNKNOWN) {
+                if (expr_op(s, i + 1, 0) != OP_UNKNOWN)
                     found = 1;
-                } else if (found) {
+                else if (found)
                     break;
-                }
                 i++;
                 c = s[i];
             }
-            if (!found) {
-                return -5;  // unknown operator
-            }
+            if (!found)
+                return -5; /* unknown operator */
             *flags = EXPR_TNUMBER | EXPR_TWORD | EXPR_TOPEN;
             return i;
         }
@@ -655,30 +641,26 @@ int expr_next_token(const char *s, size_t len, int *flags)
 static int expr_bind(const char *s, size_t len, vec_expr_t *es)
 {
     enum expr_type op = expr_op(s, len, -1);
-    if (op == OP_UNKNOWN) {
+    if (op == OP_UNKNOWN)
         return -1;
-    }
 
     if (expr_is_unary(op)) {
-        if (vec_len(es) < 1) {
+        if (vec_len(es) < 1)
             return -1;
-        }
         struct expr arg = vec_pop(es);
         struct expr unary = expr_init();
         unary.type = op;
         vec_push(&unary.param.op.args, arg);
         vec_push(es, unary);
     } else {
-        if (vec_len(es) < 2) {
+        if (vec_len(es) < 2)
             return -1;
-        }
         struct expr b = vec_pop(es);
         struct expr a = vec_pop(es);
         struct expr binary = expr_init();
         binary.type = op;
-        if (op == OP_ASSIGN && a.type != OP_VAR) {
+        if (op == OP_ASSIGN && a.type != OP_VAR)
             return -1; /* Bad assignment */
-        }
         vec_push(&binary.param.op.args, a);
         vec_push(&binary.param.op.args, b);
         vec_push(es, binary);
@@ -770,17 +752,15 @@ struct expr *expr_create(const char *s,
     int paren = EXPR_PAREN_ALLOWED;
     for (;;) {
         int n = expr_next_token(s, len, &flags);
-        if (n == 0) {
+        if (n == 0)
             break;
-        } else if (n < 0) {
+        else if (n < 0)
             goto cleanup;
-        }
         const char *tok = s;
         s = s + n;
         len = len - n;
-        if (*tok == '#') {
+        if (*tok == '#')
             continue;
-        }
         if (flags & EXPR_UNARY) {
             if (n == 1) {
                 switch (*tok) {
@@ -804,9 +784,8 @@ struct expr *expr_create(const char *s,
             n = 1;
             tok = ",";
         }
-        if (isspace(*tok)) {
+        if (isspace(*tok))
             continue;
-        }
         int paren_next = EXPR_PAREN_ALLOWED;
 
         if (idn > 0) {
@@ -826,9 +805,8 @@ struct expr *expr_create(const char *s,
                     struct expr_string str = {id, (int) idn};
                     vec_push(&os, str);
                     paren = EXPR_PAREN_EXPECTED;
-                } else {
+                } else
                     goto cleanup; /* invalid function name */
-                }
             } else if ((v = expr_var(vars, id, idn))) {
                 vec_push(&es, expr_varref(v));
                 paren = EXPR_PAREN_FORBIDDEN;
@@ -846,30 +824,26 @@ struct expr *expr_create(const char *s,
             } else if (paren == EXPR_PAREN_ALLOWED) {
                 struct expr_string str = {"(", 1};
                 vec_push(&os, str);
-            } else {
-                goto cleanup;  // Bad call
-            }
+            } else
+                goto cleanup; /* Bad call */
         } else if (paren == EXPR_PAREN_EXPECTED) {
-            goto cleanup;  // Bad call
+            goto cleanup; /* Bad call */
         } else if (n == 1 && *tok == ')') {
             int minlen = (vec_len(&as) > 0 ? vec_peek(&as).oslen : 0);
             while (vec_len(&os) > minlen && *vec_peek(&os).s != '(' &&
                    *vec_peek(&os).s != '{') {
                 struct expr_string str = vec_pop(&os);
-                if (expr_bind(str.s, str.n, &es) == -1) {
+                if (expr_bind(str.s, str.n, &es) == -1)
                     goto cleanup;
-                }
             }
-            if (vec_len(&os) == 0) {
-                goto cleanup;  // Bad parens
-            }
+            if (vec_len(&os) == 0)
+                goto cleanup; /* Bad parens */
             struct expr_string str = vec_pop(&os);
             if (str.n == 1 && *str.s == '{') {
                 str = vec_pop(&os);
                 struct expr_arg arg = vec_pop(&as);
-                if (vec_len(&es) > arg.eslen) {
+                if (vec_len(&es) > arg.eslen)
                     vec_push(&arg.args, vec_pop(&es));
-                }
                 if (str.n == 1 && str.s[0] == '$') {
                     if (vec_len(&arg.args) < 1) {
                         vec_free(&arg.args);
@@ -894,9 +868,8 @@ struct expr *expr_create(const char *s,
                     struct macro m;
                     vec_foreach (&macros, m, i) {
                         if (strlen(m.name) == (size_t) str.n &&
-                            strncmp(m.name, str.s, str.n) == 0) {
+                            strncmp(m.name, str.s, str.n) == 0)
                             found = i;
-                        }
                     }
                     if (found != -1) {
                         m = vec_nth(&macros, found);
@@ -922,9 +895,8 @@ struct expr *expr_create(const char *s,
                                                  expr_const(0));
                                 expr_copy(&vec_nth(&p->param.op.args, 0),
                                           &vec_nth(&m.body, j));
-                            } else {
+                            } else
                                 expr_copy(p, &vec_nth(&m.body, j));
-                            }
                             p = &vec_nth(&p->param.op.args, 1);
                         }
                         vec_push(&es, root);
@@ -937,9 +909,8 @@ struct expr *expr_create(const char *s,
                         bound_func.param.func.args = arg.args;
                         if (f->ctxsz > 0) {
                             void *p = kcalloc(1, f->ctxsz, GFP_KERNEL);
-                            if (!p) {
+                            if (!p)
                                 goto cleanup; /* allocation failed */
-                            }
                             bound_func.param.func.context = p;
                         }
                         vec_push(&es, bound_func);
@@ -953,9 +924,8 @@ struct expr *expr_create(const char *s,
         } else if (expr_op(tok, n, -1) != OP_UNKNOWN) {
             enum expr_type op = expr_op(tok, n, -1);
             struct expr_string o2 = {NULL, 0};
-            if (vec_len(&os) > 0) {
+            if (vec_len(&os) > 0)
                 o2 = vec_peek(&os);
-            }
             for (;;) {
                 if (n == 1 && *tok == ',' && vec_len(&os) > 0) {
                     struct expr_string str = vec_peek(&os);
@@ -972,49 +942,42 @@ struct expr *expr_create(const char *s,
                     break;
                 }
 
-                if (expr_bind(o2.s, o2.n, &es) == -1) {
+                if (expr_bind(o2.s, o2.n, &es) == -1)
                     goto cleanup;
-                }
                 (void) vec_pop(&os);
-                if (vec_len(&os) > 0) {
+                if (vec_len(&os) > 0)
                     o2 = vec_peek(&os);
-                } else {
+                else
                     o2.n = 0;
-                }
             }
         } else {
             if (n > 0 && !isdigit(*tok)) {
                 /* Valid identifier, a variable or a function */
                 id = tok;
                 idn = n;
-            } else {
-                goto cleanup;  // Bad variable name, e.g. '2.3.4' or '4ever'
-            }
+            } else
+                goto cleanup; /* Bad variable name, e.g. '2.3.4' or '4ever' */
         }
         paren = paren_next;
     }
 
-    if (idn > 0) {
+    if (idn > 0)
         vec_push(&es, expr_varref(expr_var(vars, id, idn)));
-    }
 
     while (vec_len(&os) > 0) {
         struct expr_string rest = vec_pop(&os);
-        if (rest.n == 1 && (*rest.s == '(' || *rest.s == ')')) {
-            goto cleanup;  // Bad paren
-        }
-        if (expr_bind(rest.s, rest.n, &es) == -1) {
+        if (rest.n == 1 && (*rest.s == '(' || *rest.s == ')'))
+            goto cleanup; /* Bad paren */
+        if (expr_bind(rest.s, rest.n, &es) == -1)
             goto cleanup;
-        }
     }
 
     result = (struct expr *) kcalloc(1, sizeof(struct expr), GFP_KERNEL);
     if (result) {
-        if (vec_len(&es) == 0) {
+        if (vec_len(&es) == 0)
             result->type = OP_CONST;
-        } else {
+        else
             *result = vec_pop(&es);
-        }
     }
 
     int i, j;
