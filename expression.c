@@ -20,7 +20,7 @@
  * Expression data types
  */
 
-int GET_FRAC(int n)
+static int GET_FRAC(int n)
 {
     int x = n & 15;
     if (x & 8)
@@ -29,7 +29,7 @@ int GET_FRAC(int n)
     return x;
 }
 
-int FP2INT(int n, int d)
+static int FP2INT(int n, int d)
 {
     while (n && n % 10 == 0) {
         ++d;
@@ -43,7 +43,7 @@ int FP2INT(int n, int d)
     return ((n << 4) | (d & 15));
 }
 
-int isNan(int x)
+static int isNan(int x)
 {
     return GET_FRAC(x) == GET_FRAC(NAN_INT);
 }
@@ -235,7 +235,7 @@ struct expr_var *expr_var(struct expr_var_list *vars, const char *s, size_t len)
     return v;
 }
 
-int mult(int a, int b)
+static int mult(int a, int b)
 {
     int frac1 = GET_FRAC(a);
     int frac2 = GET_FRAC(b);
@@ -246,7 +246,7 @@ int mult(int a, int b)
     return FP2INT(n3, (frac1 + frac2));
 }
 
-int divid(int a, int b)
+static int divid(int a, int b)
 {
     int frac1 = GET_FRAC(a);
     int frac2 = GET_FRAC(b);
@@ -265,7 +265,7 @@ int divid(int a, int b)
     return FP2INT(n3, frac3);
 }
 
-int remain(int a, int b)
+static int remain(int a, int b)
 {
     int frac1 = GET_FRAC(a);
     int frac2 = GET_FRAC(b);
@@ -289,13 +289,13 @@ int remain(int a, int b)
     return FP2INT(n1, frac1);
 }
 
-int right_shift(int a, int b)
+static int right_shift(int a, int b)
 {
     /* FIXME: should use 2-base? */
     return divid(a, mult(2 << 4, b));
 }
 
-int power(int a, int b)
+static int power(int a, int b)
 {
     int frac1 = GET_FRAC(a);
     int frac2 = GET_FRAC(b);
@@ -322,13 +322,13 @@ int power(int a, int b)
     return FP2INT(n1, frac1);
 }
 
-int left_shift(int a, int b)
+static int left_shift(int a, int b)
 {
     /* FIXME: should use 2-base? */
     return mult(a, power(2 << 4, b));
 }
 
-int plus(int a, int b)
+static int plus(int a, int b)
 {
     int frac1 = GET_FRAC(a);
     int frac2 = GET_FRAC(b);
@@ -350,7 +350,7 @@ int plus(int a, int b)
     return FP2INT(n1, frac1);
 }
 
-int minus(int a, int b)
+static int minus(int a, int b)
 {
     int frac1 = GET_FRAC(a);
     int frac2 = GET_FRAC(b);
@@ -371,7 +371,7 @@ int minus(int a, int b)
     return FP2INT(n1, frac1);
 }
 
-int compare(int a, int b)
+static int compare(int a, int b)
 {
     int frac1 = GET_FRAC(a);
     int frac2 = GET_FRAC(b);
@@ -398,7 +398,7 @@ int compare(int a, int b)
     return flags;
 }
 
-int bitwise_op(int a, int b, int op)
+static int bitwise_op(int a, int b, int op)
 {
     int frac1 = GET_FRAC(a);
     int frac2 = GET_FRAC(b);
@@ -443,7 +443,7 @@ int bitwise_op(int a, int b, int op)
     return FP2INT(n1, frac1);
 }
 
-int not(int a)
+static int not(int a)
 {
     int frac = GET_FRAC(a);
     int n = GET_NUM(a);
