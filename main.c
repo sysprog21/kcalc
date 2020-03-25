@@ -111,6 +111,7 @@ static void calc(void)
 
     result = expr_eval(e);
     printk(KERN_INFO "Result: %d\n", result);
+    expr_destroy(e, &vars);
 }
 
 static int dev_release(struct inode *inodep, struct file *filep)
