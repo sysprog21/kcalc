@@ -21,7 +21,6 @@ msb 0    1                              28        32 lsb
     +----+------------------------------+----------+
 ```
 
-
 ## Usage:
 
 Build and install the module
@@ -71,6 +70,62 @@ Testing  (1/3)+(2/3) ...
 Testing  (2145%31)+23 ...
 29
 ```
+
+## Internals
+
+`struct expr *expr_create(const char *s, size_t len, struct expr_var_list
+*vars, struct expr_func *funcs)` - returns compiled expression from the given
+string. If expression uses variables - they are bound to `vars`, so you can
+modify values before evaluation or check the results after the evaluation.
+
+`int expr_eval(struct expr *e)` - evaluates compiled expression.
+
+`void expr_destroy(struct expr *e, struct expr_var_list *vars)` - cleans up
+memory. Parameters can be NULL (e.g. if you want to clean up expression, but
+reuse variables for another expression).
+
+`struct expr_var *expr_var(struct expr_var *vars, const char *s, size_t len)` -
+returns/creates variable of the given name in the given list. This can be used
+to get variable references to get/set them manually.
+
+## Supported operators
+
+* Arithmetics: `+`, `-`, `*`, `/`, `%` (remainder), `**` (power)
+* Bitwise: `<<`, `>>`, `&`, `|`, `^` (xor or unary bitwise negation)
+* Logical: `<`, `>`, `==`, `!=`, `<=`, `>=`, `&&`, `||`, `!` (unary not)
+* Other: `=` (assignment, e.g. `x=y=5`), `,` (separates expressions or function parameters)
+
+## Use Custom function
+
+Sample usage in [MathEX](https://github.com/jserv/MathEX)
+```c
+#include "expression.h"
+
+/* Custom function that returns the sum of its two arguments */
+static float add(struct expr_func *f, vec_expr_t args, void *c) {
+    float a = expr_eval(&vec_nth(&args, 0));
+    float b = expr_eval(&vec_nth(&args, 1));
+    return a + b;
+}
+
+static struct expr_func user_funcs[] = {
+    {"add", add, 0}, {NULL, NULL, 0},
+};
+
+int main() {
+    const char *s = "x = 40, add(2, x)";
+    struct expr_var_list vars = {0};
+    struct expr *e = expr_create(s, strlen(s), &vars, user_funcs);
+    if (!e) { printf("Syntax error"); return 1; }
+
+    printf("result: %f\n", expr_eval(e));
+
+    expr_destroy(e, &vars);
+    return 0;
+}
+```
+
+Output: `result: 42.000000`
 
 ## License
 
