@@ -252,6 +252,8 @@ static int divid(int a, int b)
     int frac2 = GET_FRAC(b);
     int n1 = GET_NUM(a);
     int n2 = GET_NUM(b);
+    if (n1 == 0 && n2 == 0)
+        return NAN_INT;
     if (n2 == 0)
         return INF_INT;
 
