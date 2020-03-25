@@ -856,7 +856,7 @@ struct expr *expr_create(const char *s,
                         vec_free(&arg.args);
                         goto cleanup; /* first argument is not a variable */
                     }
-                    for (struct expr_var *v = vars->head; v; v = v->next) {
+                    for (v = vars->head; v; v = v->next) {
                         if (&v->value == u->param.var.value) {
                             struct macro m = {v->name, arg.args};
                             vec_push(&macros, m);
@@ -882,8 +882,7 @@ struct expr *expr_create(const char *s,
                             char varname[4];
                             snprintf(varname, sizeof(varname) - 1, "$%d",
                                      (j + 1));
-                            struct expr_var *v =
-                                expr_var(vars, varname, strlen(varname));
+                            v = expr_var(vars, varname, strlen(varname));
                             struct expr ev = expr_varref(v);
                             struct expr assign = expr_binary(
                                 OP_ASSIGN, ev, vec_nth(&arg.args, j));
@@ -988,7 +987,6 @@ struct expr *expr_create(const char *s,
     struct expr_arg a;
 cleanup:
     vec_foreach (&macros, m, i) {
-        struct expr e;
         vec_foreach (&m.body, e, j) {
             expr_destroy_args(&e);
         }
