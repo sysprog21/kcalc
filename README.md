@@ -5,13 +5,13 @@ input, returning floating-point number as a result.
 
 ## Features
 
-* Supports arithmetic, bitwise and logical operators
-* Supports variables
-* Low memory usage
+* Arithmetic, bitwise and logical operators;
+* Flexiable variables;
+* Customized functions;
 
 ## Floating point representation
 
-This is our customized form to represent floating point, one 32-bit size
+This is specific fixed form to represent floating point, one 32-bit size
 is divided into sign (1 bit), integer (27 bits), and mantissa (4 bits).
 
 ```
@@ -46,7 +46,8 @@ Result: 240
 
 The result seems incorrect since we do not transform the value to normal representation.
 
-You can check file `scripts/test.sh` for more examples about the expressions.
+You can check file `scripts/test.sh` for more examples about the expressions. Alteratively,
+execue `make check` for the same script.
 
 ```shell
 $ scripts/test.sh

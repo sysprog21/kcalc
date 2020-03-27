@@ -1,3 +1,7 @@
+/* MathEX is a mathematical expression evaluator.
+ * It takes string as input and returns floating-point number as a result.
+ */
+
 #ifndef EXPRESSION_H_
 #define EXPRESSION_H_
 
