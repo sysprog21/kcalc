@@ -100,10 +100,31 @@ static ssize_t dev_write(struct file *filep,
     return len;
 }
 
+noinline void user_func_nop_cleanup(struct expr_func *f, void *c)
+{
+    /* suppress compilation warnings */
+    (void) f;
+    (void) c;
+}
+
+noinline int user_func_nop(struct expr_func *f, vec_expr_t args, void *c)
+{
+    (void) args;
+    (void) c;
+    if (f->ctxsz == 0)
+        return -1;
+    return 0;
+}
+
+static struct expr_func user_funcs[] = {
+    {"nop", user_func_nop, user_func_nop_cleanup, 0},
+    {NULL, NULL, NULL, 0},
+};
+
 static void calc(void)
 {
     struct expr_var_list vars = {0};
-    struct expr *e = expr_create(message, strlen(message), &vars, NULL);
+    struct expr *e = expr_create(message, strlen(message), &vars, user_funcs);
     if (!e) {
         printk(KERN_ALERT "Syntax error");
         return;
