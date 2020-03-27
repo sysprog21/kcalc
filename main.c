@@ -1,3 +1,5 @@
+#define pr_fmt(fmt) KBUILD_MODNAME ": " fmt
+
 #include <linux/init.h>
 #include <linux/kernel.h>
 #include <linux/module.h>
@@ -64,8 +66,7 @@ static ssize_t dev_read(struct file *filep,
 
     error_count = copy_to_user(buffer, message, size_of_message);
     if (error_count == 0) {
-        printk(KERN_INFO "CALC: size: %d result: %d\n", size_of_message,
-               result);
+        pr_info("size: %d result: %d\n", size_of_message, result);
         while (len && *msg_ptr) {
             error_count = put_user(*(msg_ptr++), buffer++);
             len--;
@@ -75,8 +76,7 @@ static ssize_t dev_read(struct file *filep,
             return (size_of_message);
         return -EFAULT;
     } else {
-        printk(KERN_INFO "CALC: Failed to send %d characters to the user\n",
-               error_count);
+        pr_info("Failed to send %d characters to the user\n", error_count);
         return -EFAULT;
     }
 }
@@ -89,12 +89,12 @@ static ssize_t dev_write(struct file *filep,
     memset(message, 0, sizeof(char) * BUFF_SIZE);
 
     if (len >= BUFF_SIZE) {
-        printk(KERN_ALERT "Expression too long");
+        pr_alert("Expression too long");
         return 0;
     }
 
     copy_from_user(message, buffer, len);
-    printk(KERN_INFO "CALC: Received %ld -> %s\n", len, message);
+    pr_info("Received %ld -> %s\n", len, message);
 
     calc();
     return len;
@@ -126,58 +126,56 @@ static void calc(void)
     struct expr_var_list vars = {0};
     struct expr *e = expr_create(message, strlen(message), &vars, user_funcs);
     if (!e) {
-        printk(KERN_ALERT "Syntax error");
+        pr_alert("Syntax error");
         return;
     }
 
     result = expr_eval(e);
-    printk(KERN_INFO "Result: %d\n", result);
+    pr_info("Result: %d\n", result);
     expr_destroy(e, &vars);
 }
 
 static int dev_release(struct inode *inodep, struct file *filep)
 {
-    printk(KERN_INFO "CALC: Device successfully closed\n");
+    pr_info("Device successfully closed\n");
     return 0;
 }
 
 static int __init calc_init(void)
 {
-    printk(KERN_INFO "CALC: Initializing the CALC LKM\n");
+    pr_info("Initializing the module\n");
 
     /* Try to dynamically allocate a major number for the device -- more
      * difficult but worth it
      */
     major = register_chrdev(0, DEVICE_NAME, &fops);
     if (major < 0) {
-        printk(KERN_ALERT "CALC failed to register a major number\n");
+        pr_alert("Failed to register a major number\n");
         return major;
     }
-    printk(KERN_INFO "CALC: registered correctly with major number %d\n",
-           major);
+    pr_info("registered correctly with major number %d\n", major);
 
     /* Register the device class */
     char_class = class_create(THIS_MODULE, CLASS_NAME);
     if (IS_ERR(char_class)) {  // Check for error and clean up if there is
         unregister_chrdev(major, DEVICE_NAME);
-        printk(KERN_ALERT "Failed to register device class\n");
-        return PTR_ERR(
-            char_class); /* Correct way to return an error on a pointer */
+        pr_alert("Failed to register device class\n");
+        return PTR_ERR(char_class); /* return an error on a pointer */
     }
-    printk(KERN_INFO "CALC: device class registered correctly\n");
+    pr_info("device class registered correctly\n");
 
     /* Register the device driver */
     char_dev =
         device_create(char_class, NULL, MKDEV(major, 0), NULL, DEVICE_NAME);
     if (IS_ERR(char_dev)) {        /* Clean up if there is an error */
         class_destroy(char_class); /* Repeated code but the alternative is
-                                    *  goto statements
+                                    * goto statements
                                     */
         unregister_chrdev(major, DEVICE_NAME);
-        printk(KERN_ALERT "Failed to create the device\n");
+        pr_alert("Failed to create the device\n");
         return PTR_ERR(char_dev);
     }
-    printk(KERN_INFO "CALC: device class created correctly\n");
+    pr_info("device class created correctly\n");
     return 0;
 }
 
@@ -187,7 +185,7 @@ static void __exit calc_exit(void)
     class_unregister(char_class);          /* unregister the device class */
     class_destroy(char_class);             /* remove the device class */
     unregister_chrdev(major, DEVICE_NAME); /* unregister the major number */
-    printk(KERN_INFO "CALC: Goodbye!\n");
+    pr_info("Goodbye!\n");
 }
 
 module_init(calc_init);
