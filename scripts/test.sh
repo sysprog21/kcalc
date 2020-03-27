@@ -34,7 +34,9 @@ if [ "$EUID" -eq 0 ]
   exit
 fi
 
+sudo rmmod -f livepatch-calc 2>/dev/null
 sudo rmmod -f calc 2>/dev/null
+sleep 1
 
 modinfo $CALC_MOD || exit 1
 sudo insmod calc.ko
@@ -77,4 +79,26 @@ test_op '小熊=6, 維尼=7, 小熊*維尼' # should be 42
 test_op 'τ=1.618, 3*τ' # should be 3 * 1.618 = 4.854
 test_op '$(τ, 1.618), 3*τ()' # shold be 3 * 1.618 = 4.854
 
+# functions
+test_op '$(zero), zero()' # should be 0
+test_op '$(one, 1), one()+one(1)+one(1, 2, 4)' # should be 3
+test_op '$(number, 1), $(number, 2+3), number()' # should be 5
+
+# pre-defined function
+test_op 'nop()'
+
+# Livepatch
+sudo insmod livepatch-calc.ko
+sleep 1
+echo "livepatch was applied"
+test_op 'nop()'
+dmesg | tail -n 6
+echo "Disabling livepatch..."
+sudo sh -c "echo 0 > /sys/kernel/livepatch/livepatch_calc/enabled"
+sleep 2
+sudo rmmod livepatch-calc
+
 sudo rmmod calc
+
+# epilogue
+echo "Complete"
