@@ -45,6 +45,13 @@ Result: 240
 ```
 
 The result seems incorrect since we do not transform the value to normal representation.
+You can use the utlity to convert values into human readable form:
+```shell
+$ source scripts/eval.sh
+$ fromfixed 240
+```
+
+Then, you can get `15`, which is the exact result of expression `3*5`.
 
 You can check file `scripts/test.sh` for more examples about the expressions. Alteratively,
 execue `make check` for the same script.

@@ -1,32 +1,16 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 CALC_DEV=/dev/calc
 CALC_MOD=calc.ko
+LIVEPATCH_CALC_MOD=livepatch-calc.ko
+
+source scripts/eval.sh
 
 test_op() {
     local expression=$1 
-    local NAN_INT=31
-    local INF_INT=47
     echo "Testing " ${expression} "..."
     echo -ne ${expression}'\0' > $CALC_DEV
-    ret=$(cat $CALC_DEV)
-
-    # Transfer the self-defined representation to real number
-    num=$(($ret >> 4))
-    frac=$(($ret&15))
-    neg=$((($frac & 8)>>3))
-    
-    [[ $neg -eq 1 ]] && frac=$((-((~$frac&15)+1)))
-
-    if [ "$ret" -eq "$NAN_INT" ]
-    then
-        echo "NAN_INT"
-    elif [ "$ret" -eq "$INF_INT" ]
-    then
-        echo "INF_INT"
-    else
-      echo "$num*(10^$frac)" | bc -l
-    fi
+    fromfixed $(cat $CALC_DEV)
 }
 
 if [ "$EUID" -eq 0 ]
@@ -39,7 +23,7 @@ sudo rmmod -f calc 2>/dev/null
 sleep 1
 
 modinfo $CALC_MOD || exit 1
-sudo insmod calc.ko
+sudo insmod $CALC_MOD
 sudo chmod 0666 $CALC_DEV
 echo
 
@@ -88,7 +72,7 @@ test_op '$(number, 1), $(number, 2+3), number()' # should be 5
 test_op 'nop()'
 
 # Livepatch
-sudo insmod livepatch-calc.ko
+sudo insmod $LIVEPATCH_CALC_MOD
 sleep 1
 echo "livepatch was applied"
 test_op 'nop()'
