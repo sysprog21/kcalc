@@ -40,13 +40,13 @@ $ echo -ne "3*5\0" > /dev/calc
 The expected output in `dmesg` should be:
 
 ```shell
-CALC: Received 3 -> 3*5
+calc: Received 3 -> 3*5
 Result: 240
 ```
 
 The result seems incorrect since we do not transform the value to normal representation.
 
-You can use add additional expression in `scripts/test.sh` for more examples.
+You can check file `scripts/test.sh` for more examples about the expressions.
 
 ```shell
 $ scripts/test.sh
