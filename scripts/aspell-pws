@@ -157,3 +157,6 @@ timespec
 timeval
 NaN
 livepatch
+MathEx
+vec
+expr
