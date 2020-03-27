@@ -1,6 +1,5 @@
 KDIR=/lib/modules/$(shell uname -r)/build
 
-#TARGET = calc
 obj-m += calc.o
 obj-m += livepatch-calc.o
 calc-objs += main.o expression.o
