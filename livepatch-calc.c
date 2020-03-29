@@ -4,6 +4,7 @@
 #include <linux/livepatch.h>
 #include <linux/module.h>
 #include <linux/slab.h>
+#include <linux/version.h>
 
 #include "expression.h"
 
@@ -55,6 +56,9 @@ static struct klp_patch patch = {
 
 static int livepatch_calc_init(void)
 {
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 1, 0)
+    return klp_enable_patch(&patch);
+#else
     int ret = klp_register_patch(&patch);
     if (ret)
         return ret;
@@ -64,11 +68,14 @@ static int livepatch_calc_init(void)
         return ret;
     }
     return 0;
+#endif
 }
 
 static void livepatch_calc_exit(void)
 {
+#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 1, 0)
     WARN_ON(klp_unregister_patch(&patch));
+#endif
 }
 
 module_init(livepatch_calc_init);
