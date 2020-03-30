@@ -11,9 +11,9 @@
 #define INF_INT ((1 << 5) | ((1 << 4) - 1))
 #define MASK(n) (((n) > 0) << 4)
 /*
- * lsb 4 byte for precision, 2^3, one for sign
- * msb 28 byte for integer
- * lsb all 1 is NAN
+ * LSB 4 bits for precision, 2^3, one for sign
+ * MSB 28 bits for integer
+ * LSB all 1 is NaN
  */
 
 /*

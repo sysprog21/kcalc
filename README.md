@@ -1,7 +1,7 @@
 # kcalc: in-kernel math expression evaluation for Linux
 
 kcalc is a mathematical expression evaluator and takes string as
-input, returning floating-point number as a result.
+input, returning fixed-point numbers.
 
 ## Features
 
@@ -9,16 +9,17 @@ input, returning floating-point number as a result.
 * Flexiable variables;
 * Customized functions;
 
-## Floating point representation
+## Fixed-point representation
 
-This is specific fixed form to represent floating point, one 32-bit size
-is divided into sign (1 bit), integer (27 bits), and mantissa (4 bits).
+kcalc introduces a fixed-point number representation for fractional values:
+one 32-bit size is divided into mantissa (28 bits), sign (1 bit) and
+exponent (3 bits).
 
 ```
-msb 0    1                              28        32 lsb
-    +----+------------------------------+----------+
-    |sign|           integer            | mantissa |
-    +----+------------------------------+----------+
+MSB   31                               4    3   2    1   0  LSB
+     +----------------------------------+------+----------+
+     |     mantissa                     | sign | exponent |
+     +----------------------------------+------+----------+
 ```
 
 ## Usage:
