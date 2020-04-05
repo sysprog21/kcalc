@@ -6,7 +6,7 @@ input, returning fixed-point numbers.
 ## Features
 
 * Arithmetic, bitwise and logical operators;
-* Flexiable variables;
+* Flexible variables;
 * Customized functions;
 
 ## Fixed-point representation
@@ -45,14 +45,14 @@ calc: Received 3 -> 3*5
 Result: 240
 ```
 
-The result seems incorrect since we do not transform the value to normal representation.
+The result seems incorrect because we did not transform the value to normal representation.
 You can use the utlity to convert values into human readable form:
 ```shell
 $ source scripts/eval.sh
 $ fromfixed 240
 ```
 
-Then, you can get `15`, which is the exact result of expression `3*5`.
+Then, you can get `15`, which is the exact result for expression `3*5`.
 
 You can check file `scripts/test.sh` for more examples about the expressions. Alteratively,
 execue `make check` for the same script.
